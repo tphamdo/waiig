@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	DEBUG = false
+	DEBUG = true
 )
 
 type Parser struct {
@@ -63,6 +63,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.prefixParseFns[token.TRUE] = p.parseBoolean
 	p.prefixParseFns[token.FALSE] = p.parseBoolean
 	p.prefixParseFns[token.LPAREN] = p.parseGroupedExpression
+	p.prefixParseFns[token.IF] = p.parseIfExpression
 
 	//register infix fns
 	p.infixParseFns[token.PLUS] = p.parseInfixExpression
@@ -160,7 +161,7 @@ func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 
 func (p *Parser) parseExpression(precedence int) ast.Expression {
 	if DEBUG {
-        defer untrace(trace(fmt.Sprintf("parseExpression: %d", precedence)))
+		defer untrace(trace(fmt.Sprintf("parseExpression: %d", precedence)))
 	}
 	prefix := p.prefixParseFns[p.curToken.Type]
 
@@ -260,14 +261,72 @@ func (p *Parser) parseGroupedExpression() ast.Expression {
 		defer untrace(trace("parseGroupedExpression"))
 	}
 
-    p.nextToken()
-    e := p.parseExpression(LOWEST)
+	p.nextToken()
+	e := p.parseExpression(LOWEST)
 
-    if !p.expectPeek(token.RPAREN) {
-        return nil
-    }
+	if !p.expectPeek(token.RPAREN) {
+		return nil
+	}
 
-    return e
+	return e
+}
+
+func (p *Parser) parseIfExpression() ast.Expression {
+	if DEBUG {
+		defer untrace(trace("parseIfExpression"))
+	}
+
+	if !p.expectPeek(token.LPAREN) {
+		return nil
+	}
+
+	p.nextToken()
+	ie := &ast.IfExpression{Token: p.curToken}
+	ie.Condition = p.parseExpression(LOWEST)
+
+	if !p.expectPeek(token.RPAREN) {
+		return nil
+	}
+
+	if !p.expectPeek(token.LBRACE) {
+		return nil
+	}
+
+	ie.Consequence = p.parseBlockStatement()
+
+	if p.peekTokenIs(token.ELSE) {
+		p.nextToken()
+
+		if !p.expectPeek(token.LBRACE) {
+			return nil
+		}
+
+		ie.Alternative = p.parseBlockStatement()
+	}
+
+	return ie
+}
+
+func (p *Parser) parseBlockStatement() *ast.BlockStatement {
+	// Starts on '{' and ends on '}'
+	if DEBUG {
+		defer untrace(trace("parseBlockStatement"))
+	}
+
+	bs := &ast.BlockStatement{Token: p.curToken}
+	bs.Statements = []ast.Statement{}
+
+	p.nextToken()
+
+	for !p.curTokenIs(token.EOF) && !p.curTokenIs(token.RBRACE) {
+		stmt := p.parseStatement()
+		if stmt != nil {
+			bs.Statements = append(bs.Statements, stmt)
+		}
+		p.nextToken()
+	}
+
+	return bs
 }
 
 func (p *Parser) curTokenIs(t token.TokenType) bool {
