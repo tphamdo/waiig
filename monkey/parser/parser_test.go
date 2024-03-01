@@ -292,7 +292,7 @@ func TestParsingInfixExpressions(t *testing.T) {
 // parser/parser_test.go
 func TestOperatorPrecedenceParsing(t *testing.T) {
 	tests := []struct {
-		input string
+		input    string
 		expected string
 	}{
 		{
@@ -346,6 +346,10 @@ func TestOperatorPrecedenceParsing(t *testing.T) {
 		{
 			"3 + 4 * 5 == 3 * 1 + 4 * 5",
 			"((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))",
+		},
+		{
+			"a + b * c + d",
+			"((a + (b * c)) + d)",
 		},
 	}
 	for _, tt := range tests {
