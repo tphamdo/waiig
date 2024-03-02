@@ -45,6 +45,7 @@ var precedences = map[token.TokenType]int{
 	token.MINUS:    SUM,
 	token.SLASH:    PRODUCT,
 	token.ASTERISK: PRODUCT,
+    token.LPAREN: CALL,
 }
 
 func New(l *lexer.Lexer, debug ...bool) *Parser {
@@ -72,6 +73,7 @@ func New(l *lexer.Lexer, debug ...bool) *Parser {
 	p.infixParseFns[token.LT] = p.parseInfixExpression
 	p.infixParseFns[token.EQ] = p.parseInfixExpression
 	p.infixParseFns[token.NOT_EQ] = p.parseInfixExpression
+	p.infixParseFns[token.LPAREN] = p.parseCallExpression
 
 	p.nextToken()
 	p.nextToken()
@@ -229,7 +231,7 @@ func (p *Parser) parsePrefixExpression() ast.Expression {
 
 func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 	if p.DEBUG {
-		defer untrace(trace(fmt.Sprintf("%sparseInfixExpression", p.curToken.Literal)))
+        defer untrace(trace(fmt.Sprintf("%s:parseInfixExpression", p.curToken.Literal)))
 	}
 	ie := &ast.InfixExpression{
 		Token: p.curToken, Left: left, Operator: p.curToken.Literal,
@@ -382,6 +384,47 @@ func (p *Parser) parseFunctionParameters() []*ast.Identifier {
 	}
 
 	return identifiers
+}
+
+func (p *Parser) parseCallExpression(function ast.Expression) ast.Expression {
+	if p.DEBUG {
+        defer untrace(trace(fmt.Sprintf("%s:parseCallExpression",function.String())))
+	}
+
+    ce := &ast.CallExpression{Token: p.curToken, Function: function}
+    ce.Arguments = p.parseCallArguments()
+    return ce
+}
+
+func (p *Parser) parseCallArguments() []ast.Expression{
+	if p.DEBUG {
+		defer untrace(trace("parseCallArguments"))
+	}
+
+    args := []ast.Expression{}
+
+    if p.peekTokenIs(token.RPAREN) {
+		p.nextToken()
+		return args
+	}
+
+	p.nextToken()
+
+    expr := p.parseExpression(LOWEST)
+	args = append(args, expr)
+
+	for p.peekTokenIs(token.COMMA) {
+		p.nextToken()
+		p.nextToken()
+        expr = p.parseExpression(LOWEST)
+        args = append(args, expr)
+	}
+
+	if !p.expectPeek(token.RPAREN) {
+		return nil
+	}
+
+    return args
 }
 
 func (p *Parser) curTokenIs(t token.TokenType) bool {
