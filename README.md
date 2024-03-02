@@ -6,21 +6,10 @@ Based on "Writing an Interpreter in Go" by Thorsten Ball :)
 $ go run main.go
 Hello tphamdo!. This is the Monkey programming language!
 Feel free to type in commands
->> let x =2;
-let x = 2;
->> let
-            __,__
-   .--.  .-"     "-.  .--.
-  / .. \/  .-. .-.  \/ .. \
- | |  '|  /   Y   \  |'  | |
- | \   \  \ 0 | 0 /  /   / |
-  \ '- ,\.-"""""""-./, -' /
-   ''-' /_   ^ ^   _\ '-''
-       |  \._   _./  |
-       \   \ '~' /   /
-        '._ '-=-' _.'
-           '-----'
-Woops! We ran into some monkey business here!
- parser errors:
-        Expected next token to be IDENT. Got EOF instead
+>> 5 + 5 * 10
+55
+>> (5 > 5 == true) != false
+false
+>> 500 / 2 == 250
+true
 ```
