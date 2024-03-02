@@ -1,9 +1,5 @@
 package ast
 
-// create a program of statements and expressions
-// top node is a program which is a sequence of statements
-// create let statement which is composed of an identifier and and expression (and token)
-
 import (
 	"bytes"
 	"monkey/token"
