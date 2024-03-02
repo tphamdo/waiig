@@ -237,9 +237,9 @@ func (fl *FunctionLiteral) String() string {
 }
 
 type CallExpression struct {
-	Token      token.Token // token.LPAREN
-	Function Expression
-	Arguments       []Expression
+	Token     token.Token // token.LPAREN
+	Function  Expression
+	Arguments []Expression
 }
 
 func (ce *CallExpression) expressionNode()      {}

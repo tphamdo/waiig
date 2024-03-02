@@ -45,7 +45,7 @@ var precedences = map[token.TokenType]int{
 	token.MINUS:    SUM,
 	token.SLASH:    PRODUCT,
 	token.ASTERISK: PRODUCT,
-    token.LPAREN: CALL,
+	token.LPAREN:   CALL,
 }
 
 func New(l *lexer.Lexer, debug ...bool) *Parser {
@@ -134,8 +134,12 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 		return nil
 	}
 
-	for !p.curTokenIs(token.SEMICOLON) {
-		p.nextToken()
+	p.nextToken()
+
+	letStmt.Value = p.parseExpression(LOWEST)
+
+	if !p.expectPeek(token.SEMICOLON) {
+		return nil
 	}
 
 	return letStmt
@@ -144,8 +148,12 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 	returnStmt := &ast.ReturnStatement{Token: p.curToken}
 
-	for !p.curTokenIs(token.SEMICOLON) {
-		p.nextToken()
+	p.nextToken()
+
+	returnStmt.ReturnValue = p.parseExpression(LOWEST)
+
+	if !p.expectPeek(token.SEMICOLON) {
+		return nil
 	}
 
 	return returnStmt
@@ -231,7 +239,7 @@ func (p *Parser) parsePrefixExpression() ast.Expression {
 
 func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 	if p.DEBUG {
-        defer untrace(trace(fmt.Sprintf("%s:parseInfixExpression", p.curToken.Literal)))
+		defer untrace(trace(fmt.Sprintf("%s:parseInfixExpression", p.curToken.Literal)))
 	}
 	ie := &ast.InfixExpression{
 		Token: p.curToken, Left: left, Operator: p.curToken.Literal,
@@ -388,43 +396,43 @@ func (p *Parser) parseFunctionParameters() []*ast.Identifier {
 
 func (p *Parser) parseCallExpression(function ast.Expression) ast.Expression {
 	if p.DEBUG {
-        defer untrace(trace(fmt.Sprintf("%s:parseCallExpression",function.String())))
+		defer untrace(trace(fmt.Sprintf("%s:parseCallExpression", function.String())))
 	}
 
-    ce := &ast.CallExpression{Token: p.curToken, Function: function}
-    ce.Arguments = p.parseCallArguments()
-    return ce
+	ce := &ast.CallExpression{Token: p.curToken, Function: function}
+	ce.Arguments = p.parseCallArguments()
+	return ce
 }
 
-func (p *Parser) parseCallArguments() []ast.Expression{
+func (p *Parser) parseCallArguments() []ast.Expression {
 	if p.DEBUG {
 		defer untrace(trace("parseCallArguments"))
 	}
 
-    args := []ast.Expression{}
+	args := []ast.Expression{}
 
-    if p.peekTokenIs(token.RPAREN) {
+	if p.peekTokenIs(token.RPAREN) {
 		p.nextToken()
 		return args
 	}
 
 	p.nextToken()
 
-    expr := p.parseExpression(LOWEST)
+	expr := p.parseExpression(LOWEST)
 	args = append(args, expr)
 
 	for p.peekTokenIs(token.COMMA) {
 		p.nextToken()
 		p.nextToken()
-        expr = p.parseExpression(LOWEST)
-        args = append(args, expr)
+		expr = p.parseExpression(LOWEST)
+		args = append(args, expr)
 	}
 
 	if !p.expectPeek(token.RPAREN) {
 		return nil
 	}
 
-    return args
+	return args
 }
 
 func (p *Parser) curTokenIs(t token.TokenType) bool {
