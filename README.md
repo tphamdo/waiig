@@ -11,7 +11,7 @@ Feel free to type in commands
 55
 >> (5 > 5 == true) != false
 false
->> 500 / 2 == 250
+>> if ( 5 == 2+3 ) { true } else { false }
 true
 ```
 

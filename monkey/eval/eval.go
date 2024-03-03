@@ -30,6 +30,9 @@ func Eval(node ast.Node) object.Object {
 		right := Eval(node.Right)
 		return evalPrefixExpression(node.Operator, right)
 
+	case *ast.IfExpression:
+		return evalIfExpression(node)
+
 	case *ast.InfixExpression:
 		left := Eval(node.Left)
 		right := Eval(node.Right)
@@ -141,4 +144,27 @@ func evalNegOperatorExpression(right object.Object) object.Object {
 	res := right.(*object.Integer)
 	res.Value = -res.Value
 	return res
+}
+
+func evalIfExpression(ie *ast.IfExpression) object.Object {
+	if cond := Eval(ie.Condition); isTruthy(cond) {
+		return evalStatements(ie.Consequence.Statements)
+	} else if ie.Alternative != nil {
+		return evalStatements(ie.Alternative.Statements)
+	}
+
+	return NULL
+}
+
+func isTruthy(obj object.Object) bool {
+	switch obj {
+	case NULL:
+		return false
+	case TRUE:
+		return true
+	case FALSE:
+		return false
+	default:
+		return true
+	}
 }
