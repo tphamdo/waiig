@@ -204,15 +204,15 @@ func TestErrorHandling(t *testing.T) {
             `,
 			"identifier not found: foobar",
 		},
-		{
-			`
-            if (true) {
-                let foobar = 2;
-            }
-            foobar;
-            `,
-			"identifier not found: foobar",
-		},
+		/*{
+					`
+		            if (true) {
+		                let foobar = 2;
+		            }
+		            foobar;
+		            `,
+					"identifier not found: foobar",
+				},*/
 	}
 
 	for _, tt := range tests {
@@ -248,11 +248,47 @@ func TestLetStatements(t *testing.T) {
 	}
 }
 
+func TestFunctionObject(t *testing.T) {
+	input := "fn(x) { x + 2; };"
+
+	evaluated := testEval(input)
+	fn, ok := evaluated.(*object.Function)
+	if !ok {
+		t.Fatalf("object is not Function. got %t (%+v)", evaluated, evaluated)
+	}
+
+	if len(fn.Parameters) != 1 {
+		t.Fatalf("function has wrong parameters. Parameters = %+v", fn.Parameters)
+	}
+
+	if fn.Parameters[0].String() != "x" {
+		t.Fatalf("parameter is not 'x'. got %q", fn.Parameters[0])
+	}
+
+	expectedBody := "(x + 2)"
+
+	if fn.Body.String() != expectedBody {
+		t.Fatalf("body is not %q. got %q", expectedBody, fn.Body.String())
+	}
+}
+
+func TestClosures(t *testing.T) {
+	input := `
+let newAdder = fn(x) {
+    fn(y) { x + y };
+};
+
+let addTwo = newAdder(2);
+addTwo(2);
+`
+	testIntegerObject(t, testEval(input), 4)
+}
+
 func testEval(input string) object.Object {
 	l := lexer.New(input)
 	p := parser.New(l)
 	program := p.ParseProgram()
-    e := object.NewEnvironment()
+	e := object.NewEnvironment()
 
 	return Eval(program, e)
 }

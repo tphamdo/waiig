@@ -31,18 +31,21 @@ func Eval(node ast.Node, e *object.Environment) object.Object {
 	case *ast.BlockStatement:
 		return evalBlockStatement(node, e)
 
-    case *ast.LetStatement:
-        val := Eval(node.Value, e)
-        if isError(val) {
-            return val
-        }
-        e.Set(node.Name.Value, val)
+	case *ast.LetStatement:
+		val := Eval(node.Value, e)
+		if isError(val) {
+			return val
+		}
+		e.Set(node.Name.Value, val)
 
 	case *ast.IntegerLiteral:
 		return &object.Integer{Value: node.Value}
 
 	case *ast.Boolean:
 		return nativeBoolToBooleanObject(node.Value)
+
+	case *ast.FunctionLiteral:
+		return &object.Function{Parameters: node.Parameters, Body: node.Body, Env: e}
 
 	case *ast.PrefixExpression:
 		right := Eval(node.Right, e)
@@ -67,9 +70,13 @@ func Eval(node ast.Node, e *object.Environment) object.Object {
 	case *ast.IfExpression:
 		return evalIfExpression(node, e)
 
-    case *ast.Identifier:
-        return evalIdentifier(node, e)
-    }
+	case *ast.Identifier:
+		return evalIdentifier(node, e)
+
+	case *ast.CallExpression:
+		return evalCallExpression(node, e)
+
+	}
 
 	return nil
 }
@@ -220,13 +227,49 @@ func evalIfExpression(ie *ast.IfExpression, e *object.Environment) object.Object
 }
 
 func evalIdentifier(ident *ast.Identifier, e *object.Environment) object.Object {
-    val, ok := e.Get(ident.Value)
+	val, ok := e.Get(ident.Value)
 
-    if !ok {
-        return newError("identifier not found: %s", ident.Value)
-    }
+	if !ok {
+		return newError("identifier not found: %s", ident.Value)
+	}
 
 	return val
+}
+
+func evalCallExpression(node *ast.CallExpression, e *object.Environment) object.Object {
+	f := Eval(node.Function, e)
+
+	if isError(f) {
+		return f
+	}
+
+	fn, ok := f.(*object.Function)
+	if !ok {
+		return newError("not a function: %s", f.Type())
+	}
+
+	if len(node.Arguments) != len(fn.Parameters) {
+		return newError("Expected %d arguments. Got=%d", len(fn.Parameters), len(node.Arguments))
+	}
+
+	// extend function environment
+	ne := object.NewEnclosedEnvironment(fn.Env)
+
+	for i := range node.Arguments {
+		arg := Eval(node.Arguments[i], e)
+		if isError(arg) {
+			return arg
+		}
+		ne.Set(fn.Parameters[i].String(), arg)
+	}
+
+	evaluated := Eval(fn.Body, ne)
+	if returnValue, ok := evaluated.(*object.ReturnValue); ok {
+		// unwrap return ojbect
+		return returnValue.Value
+	}
+	return evaluated
+
 }
 
 func isTruthy(obj object.Object) bool {
